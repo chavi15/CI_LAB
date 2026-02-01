@@ -3,46 +3,58 @@ pipeline {
 
     stages {
 
-        stage('Main Branch - Build & Test') {
-            when {
-                branch 'main'
-            }
+        stage('Checkout') {
             steps {
-                echo "Running pipeline for MAIN branch"
-                sh 'mvn clean test'
+                checkout scm
             }
         }
 
-        stage('Feature Branch - Build Only') {
-            when {
-                expression { env.BRANCH_NAME.startsWith('feature/') }
-            }
+        stage('Build') {
             steps {
-                echo "Running pipeline for FEATURE branch"
+                echo "Building branch: ${env.BRANCH_NAME}"
                 sh 'mvn clean compile'
             }
         }
 
-        stage('Release Branch - Full Build') {
+        stage('Test') {
             when {
-                expression { env.BRANCH_NAME.startsWith('release/') }
+                anyOf {
+                    branch 'main'
+                    branch pattern: "feature/.*", comparator: "REGEXP"
+                }
             }
             steps {
-                echo "Running pipeline for RELEASE branch"
-                sh 'mvn clean test package'
+                echo "Running tests on ${env.BRANCH_NAME}"
+                sh 'mvn test'
+            }
+        }
+
+        stage('Package') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                echo "Packaging release build"
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Deploy (Simulated)') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo "Deploying application from main branch (simulation)"
             }
         }
     }
 
     post {
-        always {
-            echo "Pipeline finished for branch: ${env.BRANCH_NAME}"
-        }
         success {
-            echo "SUCCESS"
+            echo "Pipeline SUCCESS for ${env.BRANCH_NAME}"
         }
         failure {
-            echo "FAILURE"
+            echo "Pipeline FAILED for ${env.BRANCH_NAME}"
         }
     }
 }
