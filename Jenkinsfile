@@ -1,41 +1,27 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven_3'
+    }
+
     stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build') {
             steps {
-                echo "Building branch: ${env.BRANCH_NAME}"
+                sh 'mvn -v'
                 sh 'mvn clean compile'
             }
         }
 
         stage('Test') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch pattern: "feature/.*", comparator: "REGEXP"
-                }
-            }
             steps {
-                echo "Running tests on ${env.BRANCH_NAME}"
                 sh 'mvn test'
             }
         }
 
         stage('Package') {
-            when {
-                branch pattern: "release/.*", comparator: "REGEXP"
-            }
             steps {
-                echo "Packaging release build"
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn package'
             }
         }
 
@@ -44,7 +30,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                echo "Deploying application from main branch (simulation)"
+                echo 'Deploying application (simulated)'
             }
         }
     }
